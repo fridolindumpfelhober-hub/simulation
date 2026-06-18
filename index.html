@@ -123,15 +123,8 @@
             font-size: 0.9rem;
         }
 
-        .pill-small {
-            background: #1d4ed8;
-            color: #bfdbfe;
-        }
-
-        .pill-big {
-            background: #b45309;
-            color: #fef3c7;
-        }
+        .pill-small { background: #1d4ed8; color: #bfdbfe; }
+        .pill-big   { background: #b45309; color: #fef3c7; }
 
         .pill strong {
             display: block;
@@ -139,9 +132,7 @@
             font-weight: 700;
         }
 
-        .chart-wrap {
-            position: relative;
-        }
+        .chart-wrap { position: relative; }
 
         .chart-info {
             text-align: center;
@@ -162,6 +153,92 @@
         }
 
         .formula-box strong { color: #94a3b8; }
+
+        /* ── Simulation ── */
+        .sim-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: #1d4ed8;
+            color: #fff;
+            border: none;
+            border-radius: 9px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background 0.15s;
+        }
+        .sim-btn:hover:not(:disabled) { background: #2563eb; }
+        .sim-btn:disabled { background: #1e3a5f; color: #475569; cursor: not-allowed; }
+
+        .round-counter {
+            text-align: center;
+            margin: 16px 0 4px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .round-counter strong { color: #fbbf24; font-size: 1rem; }
+
+        .progress-bar-wrap {
+            height: 4px;
+            background: #1e3a5f;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #1d4ed8;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        .sim-charts { margin-top: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+        .chart-sublabel {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .sim-stats {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 130px;
+            background: #0f172a;
+            border-radius: 9px;
+            padding: 10px 14px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .stat-label {
+            font-size: 0.68rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fbbf24;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.green { color: #22c55e; }
     </style>
 </head>
 <body>
@@ -196,16 +273,12 @@
             <span class="slider-value" id="wählerDisplay">67 %</span>
         </div>
         <div class="wähler-summary">
-            <div class="pill pill-small">
-                Kleine Münze<strong id="pct1">33 %</strong>
-            </div>
-            <div class="pill pill-big">
-                Große Münze<strong id="pct2">67 %</strong>
-            </div>
+            <div class="pill pill-small">Kleine Münze<strong id="pct1">33 %</strong></div>
+            <div class="pill pill-big">Große Münze<strong id="pct2">67 %</strong></div>
         </div>
     </div>
 
-    <!-- Chart -->
+    <!-- Bar chart -->
     <div class="card">
         <div class="card-title">Verdienst des Wählers — je nach Prüfer-Strategie</div>
         <div class="chart-wrap">
@@ -228,50 +301,90 @@
             Der Wähler verdient nur dann Geld, wenn beide <em>unterschiedliche</em> Münzen wählen.
         </div>
     </div>
+
+    <!-- Simulation -->
+    <div class="card">
+        <div class="card-title">KI-Simulation — 100 Runden</div>
+
+        <button class="sim-btn" id="simBtn">&#9654;&nbsp; Simulation starten</button>
+
+        <div id="roundCounter" class="round-counter" style="display:none">
+            Runde <strong id="roundNum">0</strong> / 100
+            <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+
+        <div class="sim-charts" id="simCharts" style="display:none">
+            <div>
+                <div class="chart-sublabel">Strategie-Entwicklung</div>
+                <canvas id="strategyChart" height="190"></canvas>
+            </div>
+            <div>
+                <div class="chart-sublabel">Verdienst pro Runde</div>
+                <canvas id="earningsChart" height="150"></canvas>
+            </div>
+            <div class="sim-stats" id="simStats" style="display:none">
+                <div class="stat-box">
+                    <div class="stat-label">Ø Verdienst (Sim.)</div>
+                    <div class="stat-value" id="avgEarnings">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Nash-Gleichgewicht</div>
+                    <div class="stat-value green" id="nashEarnings">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Nash p* Wähler</div>
+                    <div class="stat-value" id="nashP">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Nash q* Prüfer</div>
+                    <div class="stat-value" id="nashQ">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+    // ── Globals ──────────────────────────────────────────────
     let val1 = 1;
     let val2 = 2;
-    let pW2 = 0.67;
+    let pW2  = 0.67;
 
-    // Wähler earns only when they pick different coins from Prüfer:
-    //   - Wähler picks groß (pW2)  AND Prüfer picks klein (1-pP2) → Wähler earns val2
-    //   - Wähler picks klein (1-pW2) AND Prüfer picks groß (pP2)  → Wähler earns val1
-    function calcEarnings(pP2) {
-        return pW2 * (1 - pP2) * val2 + (1 - pW2) * pP2 * val1;
+    // Expected earnings for given Wähler p and Prüfer q
+    function earnings(p, q, v1, v2) {
+        return p * (1 - q) * v2 + (1 - p) * q * v1;
     }
 
-    // 11 bars: Prüfer at 0%, 10%, ..., 100%
+    // Wrapper for bar chart (uses global pW2)
+    function calcEarnings(pP2) {
+        return earnings(pW2, pP2, val1, val2);
+    }
+
+    // ── Bar chart ─────────────────────────────────────────────
     const prüferPcts = Array.from({ length: 11 }, (_, i) => i * 10);
-    const labels = prüferPcts.map(p => p + ' %');
+    const barLabels  = prüferPcts.map(p => p + ' %');
 
     function getBarColors(data) {
         const max = Math.max(...data);
         return data.map(v => {
-            const ratio = max > 0 ? v / max : 0;
-            const r = Math.round(30 + ratio * 180);
-            const g = Math.round(60 + ratio * 130);
-            const b = Math.round(20);
-            return `rgba(${r},${g},${b},0.85)`;
+            const r = Math.round(30 + (max > 0 ? v / max : 0) * 180);
+            const g = Math.round(60 + (max > 0 ? v / max : 0) * 130);
+            return `rgba(${r},${g},20,0.85)`;
         });
     }
 
-    function getData() {
-        return prüferPcts.map(p => calcEarnings(p / 100));
-    }
+    function getBarData() { return prüferPcts.map(p => calcEarnings(p / 100)); }
 
-    const ctx = document.getElementById('chart').getContext('2d');
-    const data = getData();
-
-    const chart = new Chart(ctx, {
+    const barCtx  = document.getElementById('chart').getContext('2d');
+    const barData = getBarData();
+    const barChart = new Chart(barCtx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: barLabels,
             datasets: [{
                 label: 'Verdienst des Wählers (€ / Runde)',
-                data: data,
-                backgroundColor: getBarColors(data),
+                data: barData,
+                backgroundColor: getBarColors(barData),
                 borderColor: '#fbbf24',
                 borderWidth: 1,
                 borderRadius: 5,
@@ -284,70 +397,275 @@
                 y: {
                     min: 0,
                     suggestedMax: Math.max(val1, val2),
-                    ticks: {
-                        color: '#94a3b8',
-                        callback: v => v.toFixed(2) + ' €'
-                    },
+                    ticks: { color: '#94a3b8', callback: v => v.toFixed(2) + ' €' },
                     grid: { color: '#1e3a5f' },
-                    title: {
-                        display: true,
-                        text: 'Ø Verdienst pro Runde (€)',
-                        color: '#64748b',
-                        font: { size: 11 }
-                    }
+                    title: { display: true, text: 'Ø Verdienst pro Runde (€)', color: '#64748b', font: { size: 11 } }
                 },
                 x: {
                     ticks: { color: '#94a3b8', font: { size: 11 } },
                     grid: { color: '#1e3a5f' },
-                    title: {
-                        display: true,
-                        text: 'Prüfer wählt die große Münze mit …',
-                        color: '#64748b',
-                        font: { size: 11 }
-                    }
+                    title: { display: true, text: 'Prüfer wählt die große Münze mit …', color: '#64748b', font: { size: 11 } }
                 }
             },
             plugins: {
                 legend: { labels: { color: '#cbd5e1', font: { size: 12 } } },
                 tooltip: {
                     callbacks: {
-                        title: ctx => 'Prüfer: große Münze mit ' + ctx[0].label,
-                        label: ctx => ' Ø Verdienst: ' + ctx.parsed.y.toFixed(3) + ' € / Runde'
+                        title: c => 'Prüfer: große Münze mit ' + c[0].label,
+                        label: c => ' Ø Verdienst: ' + c.parsed.y.toFixed(3) + ' € / Runde'
                     }
                 }
             }
         }
     });
 
-    function updateChart() {
-        const newData = getData();
-        chart.data.datasets[0].data = newData;
-        chart.data.datasets[0].backgroundColor = getBarColors(newData);
-        chart.options.scales.y.suggestedMax = Math.max(val1, val2);
-        chart.update();
+    function updateBarChart() {
+        const d = getBarData();
+        barChart.data.datasets[0].data = d;
+        barChart.data.datasets[0].backgroundColor = getBarColors(d);
+        barChart.options.scales.y.suggestedMax = Math.max(val1, val2);
+        barChart.update();
     }
 
-    // --- Listeners ---
+    // ── Slider listeners ──────────────────────────────────────
     document.getElementById('val1').addEventListener('input', e => {
         val1 = parseFloat(e.target.value);
         document.getElementById('val1Display').textContent = val1.toFixed(2) + ' €';
-        updateChart();
+        updateBarChart();
     });
 
     document.getElementById('val2').addEventListener('input', e => {
         val2 = parseFloat(e.target.value);
         document.getElementById('val2Display').textContent = val2.toFixed(2) + ' €';
-        updateChart();
+        updateBarChart();
     });
 
     document.getElementById('wähler').addEventListener('input', e => {
         pW2 = parseInt(e.target.value) / 100;
-        const p2 = Math.round(pW2 * 100);
-        const p1 = 100 - p2;
+        const p2 = Math.round(pW2 * 100), p1 = 100 - p2;
         document.getElementById('wählerDisplay').textContent = p2 + ' %';
         document.getElementById('pct2').textContent = p2 + ' %';
         document.getElementById('pct1').textContent = p1 + ' %';
-        updateChart();
+        updateBarChart();
+    });
+
+    // ── Simulation ────────────────────────────────────────────
+
+    function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    /*
+     * AI Strategy — Smooth Best Response with rising sharpness:
+     *
+     * Nash equilibrium:  p* = v1/(v1+v2)   q* = v2/(v1+v2)
+     *
+     * Wähler maximizes earnings:
+     *   dE/dp > 0  ⟺  q < q*   → should raise p toward 1
+     *   dE/dp < 0  ⟺  q > q*   → should lower p toward 0
+     *   Smooth target: sigmoid((q* - q) · temp)
+     *
+     * Prüfer minimizes earnings:
+     *   dE/dq > 0  ⟺  p < p*   → Prüfer should lower q
+     *   dE/dq < 0  ⟺  p > p*   → Prüfer should raise q
+     *   Smooth target: sigmoid((p - p*) · temp)
+     *
+     * Temperature grows each round: start exploratory, become decisive.
+     * Each agent moves toward target with fixed step + small noise.
+     */
+    function computeRounds() {
+        const nashP = val1 / (val1 + val2);
+        const nashQ = val2 / (val1 + val2);
+        const nashE = val1 * val2 / (val1 + val2);
+
+        let p = Math.random();
+        let q = Math.random();
+
+        const rounds = [];
+
+        for (let t = 1; t <= 100; t++) {
+            rounds.push({ t, p, q, e: earnings(p, q, val1, val2) });
+
+            const temp  = 3 + t * 0.4;   // sharpness grows with experience
+            const step  = 0.18;
+            const noise = 0.012;
+
+            const pTarget = sigmoid((nashQ - q) * temp);
+            const qTarget = sigmoid((p - nashP) * temp);
+
+            p = clamp(p + step * (pTarget - p) + (Math.random() - 0.5) * noise, 0, 1);
+            q = clamp(q + step * (qTarget - q) + (Math.random() - 0.5) * noise, 0, 1);
+        }
+
+        return { rounds, nashP, nashQ, nashE };
+    }
+
+    let stratChart = null;
+    let earnChart  = null;
+    let simTimer   = null;
+
+    document.getElementById('simBtn').addEventListener('click', () => {
+        if (simTimer) { clearInterval(simTimer); simTimer = null; }
+
+        const btn = document.getElementById('simBtn');
+        btn.disabled = true;
+
+        document.getElementById('roundCounter').style.display = 'block';
+        document.getElementById('simCharts').style.display = 'block';
+        document.getElementById('simStats').style.display = 'none';
+        document.getElementById('progressBar').style.width = '0%';
+
+        const { rounds, nashP, nashQ, nashE } = computeRounds();
+
+        if (stratChart) { stratChart.destroy(); stratChart = null; }
+        if (earnChart)  { earnChart.destroy();  earnChart  = null; }
+
+        const lineOpts = {
+            responsive: true,
+            animation: false,
+            scales: {
+                x: {
+                    ticks: { color: '#94a3b8', maxTicksLimit: 11 },
+                    grid:  { color: '#1e3a5f' },
+                    title: { display: true, text: 'Runde', color: '#64748b', font: { size: 11 } }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#cbd5e1', font: { size: 11 }, boxWidth: 18 } }
+            }
+        };
+
+        // Strategy chart
+        stratChart = new Chart(
+            document.getElementById('strategyChart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Wähler p (große Münze)',
+                            data: [], borderColor: '#60a5fa',
+                            tension: 0.35, pointRadius: 0, borderWidth: 2,
+                            fill: false,
+                        },
+                        {
+                            label: 'Prüfer q (große Münze)',
+                            data: [], borderColor: '#fb923c',
+                            tension: 0.35, pointRadius: 0, borderWidth: 2,
+                            fill: false,
+                        },
+                        {
+                            label: `Nash p* = ${(nashP * 100).toFixed(0)} %`,
+                            data: [], borderColor: '#60a5fa',
+                            borderDash: [6, 4], pointRadius: 0, borderWidth: 1.2,
+                            fill: false,
+                        },
+                        {
+                            label: `Nash q* = ${(nashQ * 100).toFixed(0)} %`,
+                            data: [], borderColor: '#fb923c',
+                            borderDash: [6, 4], pointRadius: 0, borderWidth: 1.2,
+                            fill: false,
+                        },
+                    ]
+                },
+                options: {
+                    ...lineOpts,
+                    scales: {
+                        ...lineOpts.scales,
+                        y: {
+                            min: 0, max: 1,
+                            ticks: { color: '#94a3b8', callback: v => (v * 100).toFixed(0) + ' %' },
+                            grid: { color: '#1e3a5f' },
+                            title: { display: true, text: 'Wahrscheinlichkeit', color: '#64748b', font: { size: 11 } }
+                        }
+                    }
+                }
+            }
+        );
+
+        // Earnings chart
+        earnChart = new Chart(
+            document.getElementById('earningsChart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Verdienst / Runde',
+                            data: [], borderColor: 'rgba(251,191,36,0.45)',
+                            tension: 0.2, pointRadius: 0, borderWidth: 1.5,
+                            fill: false,
+                        },
+                        {
+                            label: 'Laufender Durchschnitt',
+                            data: [], borderColor: '#fbbf24',
+                            tension: 0.35, pointRadius: 0, borderWidth: 2.5,
+                            fill: false,
+                        },
+                        {
+                            label: `Nash-Gleichgewicht = ${nashE.toFixed(3)} €`,
+                            data: [], borderColor: '#22c55e',
+                            borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5,
+                            fill: false,
+                        },
+                    ]
+                },
+                options: {
+                    ...lineOpts,
+                    scales: {
+                        ...lineOpts.scales,
+                        y: {
+                            min: 0,
+                            suggestedMax: Math.max(val1, val2),
+                            ticks: { color: '#94a3b8', callback: v => v.toFixed(2) + ' €' },
+                            grid: { color: '#1e3a5f' },
+                        }
+                    }
+                }
+            }
+        );
+
+        // Animate round by round
+        let i = 0, runSum = 0;
+
+        simTimer = setInterval(() => {
+            if (i >= rounds.length) {
+                clearInterval(simTimer);
+                simTimer = null;
+                btn.disabled = false;
+
+                const avg = runSum / rounds.length;
+                document.getElementById('avgEarnings').textContent  = avg.toFixed(3)      + ' €';
+                document.getElementById('nashEarnings').textContent = nashE.toFixed(3)    + ' €';
+                document.getElementById('nashP').textContent        = (nashP * 100).toFixed(1) + ' %';
+                document.getElementById('nashQ').textContent        = (nashQ * 100).toFixed(1) + ' %';
+                document.getElementById('simStats').style.display   = 'flex';
+                return;
+            }
+
+            const r = rounds[i];
+            runSum += r.e;
+            const avg = runSum / (i + 1);
+
+            stratChart.data.labels.push(r.t);
+            stratChart.data.datasets[0].data.push(r.p);
+            stratChart.data.datasets[1].data.push(r.q);
+            stratChart.data.datasets[2].data.push(nashP);
+            stratChart.data.datasets[3].data.push(nashQ);
+            stratChart.update();
+
+            earnChart.data.labels.push(r.t);
+            earnChart.data.datasets[0].data.push(r.e);
+            earnChart.data.datasets[1].data.push(avg);
+            earnChart.data.datasets[2].data.push(nashE);
+            earnChart.update();
+
+            document.getElementById('roundNum').textContent       = r.t;
+            document.getElementById('progressBar').style.width    = (r.t) + '%';
+
+            i++;
+        }, 55);
     });
 </script>
 </body>
