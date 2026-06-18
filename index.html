@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Münzspiel-Simulation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 28px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.7rem;
+            color: #fbbf24;
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 28px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 14px;
+            padding: 22px 28px;
+            border: 1px solid #334155;
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #64748b;
+            margin-bottom: 18px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .slider-row:last-child { margin-bottom: 0; }
+
+        .slider-label {
+            min-width: 220px;
+            font-size: 0.92rem;
+            color: #cbd5e1;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #0f3460;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(251,191,36,0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border: none;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            min-width: 70px;
+            text-align: right;
+            font-weight: 700;
+            color: #fbbf24;
+            font-size: 1.05rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wähler-summary {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .pill {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .pill-small {
+            background: #1d4ed8;
+            color: #bfdbfe;
+        }
+
+        .pill-big {
+            background: #b45309;
+            color: #fef3c7;
+        }
+
+        .pill strong {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .chart-wrap {
+            position: relative;
+        }
+
+        .chart-info {
+            text-align: center;
+            color: #475569;
+            font-size: 0.78rem;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .formula-box {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.7;
+            border: 1px solid #334155;
+        }
+
+        .formula-box strong { color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div>
+        <h1>Münzspiel-Simulation</h1>
+        <div class="subtitle">Wähler vs. Prüfer — Wie viel verdient der Wähler im Erwartungswert?</div>
+    </div>
+
+    <!-- Coin values -->
+    <div class="card">
+        <div class="card-title">Münzwerte (anpassbar)</div>
+        <div class="slider-row">
+            <span class="slider-label">Wert der kleinen Münze</span>
+            <input type="range" id="val1" min="0" max="10" step="0.1" value="1">
+            <span class="slider-value" id="val1Display">1,00 €</span>
+        </div>
+        <div class="slider-row">
+            <span class="slider-label">Wert der großen Münze</span>
+            <input type="range" id="val2" min="0" max="10" step="0.1" value="2">
+            <span class="slider-value" id="val2Display">2,00 €</span>
+        </div>
+    </div>
+
+    <!-- Wähler slider -->
+    <div class="card">
+        <div class="card-title">Strategie des Wählers</div>
+        <div class="slider-row">
+            <span class="slider-label">Wählt die große Münze mit …</span>
+            <input type="range" id="wähler" min="0" max="100" step="1" value="67">
+            <span class="slider-value" id="wählerDisplay">67 %</span>
+        </div>
+        <div class="wähler-summary">
+            <div class="pill pill-small">
+                Kleine Münze<strong id="pct1">33 %</strong>
+            </div>
+            <div class="pill pill-big">
+                Große Münze<strong id="pct2">67 %</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card">
+        <div class="card-title">Verdienst des Wählers — je nach Prüfer-Strategie</div>
+        <div class="chart-wrap">
+            <canvas id="chart" height="260"></canvas>
+        </div>
+        <div class="chart-info">
+            Jede Säule zeigt den durchschnittlichen Verdienst des Wählers pro Runde,<br>
+            wenn der Prüfer die große Münze mit dem angegebenen Prozentsatz wählt.
+        </div>
+    </div>
+
+    <!-- Formula -->
+    <div class="card">
+        <div class="card-title">Formel (Erwartungswert)</div>
+        <div class="formula-box">
+            <strong>Verdienst</strong> =
+            (P<sub>Wähler</sub>(groß) × P<sub>Prüfer</sub>(klein)) × Wert<sub>groß</sub>
+            &nbsp;+&nbsp;
+            (P<sub>Wähler</sub>(klein) × P<sub>Prüfer</sub>(groß)) × Wert<sub>klein</sub><br><br>
+            Der Wähler verdient nur dann Geld, wenn beide <em>unterschiedliche</em> Münzen wählen.
+        </div>
+    </div>
+</div>
+
+<script>
+    let val1 = 1;
+    let val2 = 2;
+    let pW2 = 0.67;
+
+    // Wähler earns only when they pick different coins from Prüfer:
+    //   - Wähler picks groß (pW2)  AND Prüfer picks klein (1-pP2) → Wähler earns val2
+    //   - Wähler picks klein (1-pW2) AND Prüfer picks groß (pP2)  → Wähler earns val1
+    function calcEarnings(pP2) {
+        return pW2 * (1 - pP2) * val2 + (1 - pW2) * pP2 * val1;
+    }
+
+    // 11 bars: Prüfer at 0%, 10%, ..., 100%
+    const prüferPcts = Array.from({ length: 11 }, (_, i) => i * 10);
+    const labels = prüferPcts.map(p => p + ' %');
+
+    function getBarColors(data) {
+        const max = Math.max(...data);
+        return data.map(v => {
+            const ratio = max > 0 ? v / max : 0;
+            const r = Math.round(30 + ratio * 180);
+            const g = Math.round(60 + ratio * 130);
+            const b = Math.round(20);
+            return `rgba(${r},${g},${b},0.85)`;
+        });
+    }
+
+    function getData() {
+        return prüferPcts.map(p => calcEarnings(p / 100));
+    }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const data = getData();
+
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Verdienst des Wählers (€ / Runde)',
+                data: data,
+                backgroundColor: getBarColors(data),
+                borderColor: '#fbbf24',
+                borderWidth: 1,
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: { duration: 150 },
+            scales: {
+                y: {
+                    min: 0,
+                    suggestedMax: Math.max(val1, val2),
+                    ticks: {
+                        color: '#94a3b8',
+                        callback: v => v.toFixed(2) + ' €'
+                    },
+                    grid: { color: '#1e3a5f' },
+                    title: {
+                        display: true,
+                        text: 'Ø Verdienst pro Runde (€)',
+                        color: '#64748b',
+                        font: { size: 11 }
+                    }
+                },
+                x: {
+                    ticks: { color: '#94a3b8', font: { size: 11 } },
+                    grid: { color: '#1e3a5f' },
+                    title: {
+                        display: true,
+                        text: 'Prüfer wählt die große Münze mit …',
+                        color: '#64748b',
+                        font: { size: 11 }
+                    }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#cbd5e1', font: { size: 12 } } },
+                tooltip: {
+                    callbacks: {
+                        title: ctx => 'Prüfer: große Münze mit ' + ctx[0].label,
+                        label: ctx => ' Ø Verdienst: ' + ctx.parsed.y.toFixed(3) + ' € / Runde'
+                    }
+                }
+            }
+        }
+    });
+
+    function updateChart() {
+        const newData = getData();
+        chart.data.datasets[0].data = newData;
+        chart.data.datasets[0].backgroundColor = getBarColors(newData);
+        chart.options.scales.y.suggestedMax = Math.max(val1, val2);
+        chart.update();
+    }
+
+    // --- Listeners ---
+    document.getElementById('val1').addEventListener('input', e => {
+        val1 = parseFloat(e.target.value);
+        document.getElementById('val1Display').textContent = val1.toFixed(2) + ' €';
+        updateChart();
+    });
+
+    document.getElementById('val2').addEventListener('input', e => {
+        val2 = parseFloat(e.target.value);
+        document.getElementById('val2Display').textContent = val2.toFixed(2) + ' €';
+        updateChart();
+    });
+
+    document.getElementById('wähler').addEventListener('input', e => {
+        pW2 = parseInt(e.target.value) / 100;
+        const p2 = Math.round(pW2 * 100);
+        const p1 = 100 - p2;
+        document.getElementById('wählerDisplay').textContent = p2 + ' %';
+        document.getElementById('pct2').textContent = p2 + ' %';
+        document.getElementById('pct1').textContent = p1 + ' %';
+        updateChart();
+    });
+</script>
+</body>
+</html>
